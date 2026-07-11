@@ -54,6 +54,15 @@ You must have [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
 3. Click Submit.
 4. *If you attempt to submit again from the same browser, or if you try to use a Roll Number that has already been recorded for that day, the system will deny your request.*
 
+### 🌍 Public Access (Internet Tunnel)
+If you want to share the attendance system with students who are not on your local Wi-Fi network, you can use the included tunnel script to expose the application to the public internet for free.
+
+1. Ensure you have [Node.js](https://nodejs.org/) installed on your computer.
+2. Double-click the **`start_tunnel.bat`** file in the project folder.
+3. A command prompt will open and generate a public `https://...loca.lt` URL.
+4. Add your session link to the end of that URL (e.g. `https://your-url.loca.lt/attendance/1234`) and share it! 
+*(Note: Visitors may need to click a "Click to Continue" button the first time they open the link).*
+
 ---
 
 ## 🛠️ Technology Stack
