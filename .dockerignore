@@ -1,0 +1,13 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments
+venv/
+env/
+.env/
+
+# Ignore Docker-related files from being copied into the image
+Dockerfile
+.dockerignore
