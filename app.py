@@ -8,11 +8,10 @@ app = Flask(__name__)
 app.secret_key = 'super_secret_key_for_flash_messages'
 DB_PATH = 'attendance.db'
 
-# --- Database Setup ---
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Create sessions table
+    
     c.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,7 +20,7 @@ def init_db():
             is_active BOOLEAN
         )
     ''')
-    # Create attendance table with UNIQUE(session_id, roll_no)
+    
     c.execute('''
         CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +33,6 @@ def init_db():
         )
     ''')
     
-    # Ensure there is at least one active session on startup
     active_session = c.execute('SELECT * FROM sessions WHERE is_active = 1').fetchone()
     if not active_session:
         new_token = str(uuid.uuid4())
@@ -50,8 +48,6 @@ def get_db_connection():
     return conn
 
 init_db()
-
-# --- HTML Templates (Embedded for simplicity) ---
 
 BASE_TEMPLATE = """
 <!DOCTYPE html>
@@ -281,19 +277,15 @@ ERROR_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', """
 </div>
 """)
 
-# --- Routes ---
-
 @app.route('/')
 def index():
     conn = get_db_connection()
-    # Get active session
     active_session = conn.execute('SELECT * FROM sessions WHERE is_active = 1').fetchone()
     
     attendees = []
     link = "No active session."
     
     if active_session:
-        # Get attendees ONLY for the active session
         attendees = conn.execute('''
             SELECT name, roll_no, timestamp 
             FROM attendance 
@@ -309,9 +301,7 @@ def index():
 @app.route('/new_session', methods=['POST'])
 def new_session():
     conn = get_db_connection()
-    # Deactivate all sessions
     conn.execute('UPDATE sessions SET is_active = 0')
-    # Create new session
     new_token = str(uuid.uuid4())
     conn.execute('INSERT INTO sessions (token, created_at, is_active) VALUES (?, ?, 1)', 
                  (new_token, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -331,7 +321,6 @@ def attendance(session_token):
     if session['is_active'] == 0:
         return render_template_string(ERROR_TEMPLATE, reason="This link has expired. The session is closed.")
 
-    # Check if the device has already marked attendance for THIS session
     cookie_name = f'attendance_marked_{session_token}'
     if request.cookies.get(cookie_name):
         return render_template_string(ERROR_TEMPLATE, reason="You have already marked your attendance from this device for today.")
@@ -344,7 +333,6 @@ def submit_attendance():
     name = request.form.get('name')
     roll_no = request.form.get('roll_no')
 
-    # Double check cookie just in case
     cookie_name = f'attendance_marked_{session_token}'
     if request.cookies.get(cookie_name):
         return render_template_string(ERROR_TEMPLATE, reason="You have already marked your attendance from this device for today.")
@@ -361,16 +349,13 @@ def submit_attendance():
                      (session['id'], name, roll_no, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         conn.commit()
     except sqlite3.IntegrityError:
-        # This catches the UNIQUE(session_id, roll_no) constraint violation
         conn.close()
         flash('This Roll Number has already been recorded for today.', 'error')
         return redirect(url_for('attendance', session_token=session_token))
     
     conn.close()
 
-    # Create the success response and SET THE COOKIE specifically for this session
     response = make_response(render_template_string(SUCCESS_TEMPLATE, name=name, roll_no=roll_no))
-    # Cookie lasts for a long time, but it's bound to the session_token name
     response.set_cookie(cookie_name, 'true', max_age=31536000) 
     
     return response
